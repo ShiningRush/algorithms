@@ -55,14 +55,20 @@ func(p *Philosopher) takeRest(){
 }
 
 func(p *Philosopher) haveEating(){
-	p.isBusy.Lock()
 	p.getLeft()
 	p.watingRandonTime() // get some delay, you will see deadlock soon
 	p.getRight()
 	log.Println(p.name + " ready to eating")
-	p.eatingCount++
-	p.left.Status = Dirty
-	p.right.Status = Dirty
+	p.isBusy.Lock()
+	if p.left != nil && p.right != nil{
+		p.eatingCount++
+		p.left.Status = Dirty
+		p.right.Status = Dirty
+		log.Println(p.name + " have eaten")
+	} else {
+		log.Println(p.name + " some res be passed, can not eating")
+		
+	}
 	p.isBusy.Unlock()
 }
 
@@ -95,7 +101,8 @@ func(p *Philosopher) handRequest(){
 			p.left = nil
 			log.Println(p.name + " already put left")
 			p.isBusy.Unlock()
-			
+		} else {
+			log.Println(p.name + " get left message, but res is not used, discard message")
 		}
 	case rightr := <- p.rightContending: // put right
 		if p.right != nil && !p.right.IsClean(){
@@ -106,7 +113,10 @@ func(p *Philosopher) handRequest(){
 			p.right = nil
 			log.Println(p.name + " already put right")
 			p.isBusy.Unlock()
+		} else {
+			log.Println(p.name + " get right message, but res is not used, discard message")
 		}
+	default:log.Println(p.name + " checked no message")
 	}
 }
 
