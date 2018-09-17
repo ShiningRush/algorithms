@@ -26,15 +26,15 @@ func sort(sortArray []int, startIdx int, endIdx int) {
 	}
 
 	bv := sortArray[startIdx]
-	j := startIdx + 1
+	j := startIdx
 	for i := startIdx + 1; i <= endIdx; i++ {
 		if sortArray[i] < bv {
-			swap(sortArray, i, j)
 			j++
+			swap(sortArray, i, j)
 		}
 	}
 
-	swap(sortArray, startIdx, j)
+	swap(sortArray, startIdx, j-1)
 	sort(sortArray, startIdx, j-1)
 	sort(sortArray, j+1, endIdx)
 }
