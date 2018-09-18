@@ -2,6 +2,7 @@
 There are some algorithms implement with different language(almost golang)
 
 ## dinning philosophers problem
+
 ([Wiki](https://en.wikipedia.org/wiki/Dining_philosophers_problem]))
 Five silent philosophers sit at a round table with bowls of spaghetti. Forks are placed between each pair of adjacent philosophers.
 
@@ -11,4 +12,13 @@ Eating is not limited by the remaining amounts of spaghetti or stomach space; an
 
 The problem is how to design a discipline of behavior (a concurrent algorithm) such that no philosopher will starve; i.e., each can forever continue to alternate between eating and thinking, assuming that no philosopher can know when others may want to eat or think.
 
-[click here look solutions](https://github.com/ShiningRush/algorithms/dinningphilosopher)
+[click here look solutions](https://github.com/ShiningRush/algorithms/diningphilosophers)
+
+## sort
+
+There are some different sort implement:
+
+- BubbleSort
+- QuickSort
+- SelectionSort
+- MergeSort
