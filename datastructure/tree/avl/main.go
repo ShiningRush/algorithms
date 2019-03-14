@@ -13,7 +13,7 @@ func (t *BinarySearchTree) Insert(data int) {
 	if t.root == nil {
 		t.root = new
 	} else {
-		t.root.Insert(new)
+		t.root.Insert(new, nil)
 	}
 }
 
@@ -47,18 +47,18 @@ type BinarySearchNode struct {
 	right *BinarySearchNode
 }
 
-func (n *BinarySearchNode) Insert(node *BinarySearchNode) {
+func (n *BinarySearchNode) Insert(node, pnode *BinarySearchNode) {
 	if node.data > n.data {
 		if n.right == nil {
 			n.right = node
 		} else {
-			n.right.Insert(node)
+			n.right.Insert(node, n)
 		}
 	} else {
 		if n.left == nil {
 			n.left = node
 		} else {
-			n.left.Insert(node)
+			n.left.Insert(node, n)
 		}
 	}
 }
@@ -144,6 +144,76 @@ func (n *BinarySearchNode) removeSelf(pPointer *BinarySearchNode, isLeft bool) {
 		mr.removeSelf(pr, false)
 	}
 }
+
+func rotation(root *BinarySearchNode, isLeft bool) *BinarySearchNode {
+
+	// left rotation
+	if isLeft {
+		if root.right == nil {
+			return root
+		}
+
+		pivot := root.right
+
+		root.right = pivot.left
+		pivot.left = root
+		return pivot
+	}
+
+	// right rotation
+	if root.left == nil {
+		return root
+	}
+
+	pivot := root.left
+	root.left = pivot.right
+	pivot.right = root
+	return pivot
+}
+
+func checkBalanceStatus(node *BinarySearchNode) BalanceStatus {
+	if node.left == nil && node.right == nil {
+		return Balance
+	}
+
+	hasLeftChild, hasRightChild := node.left != nil, node.right != nil
+	lfChildHasLeft, lfChildHasRight, rtChildHasLeft, rtChildHasRight := false, false, false, false
+	if node.left != nil {
+		lfChildHasLeft, lfChildHasRight = node.left.left != nil, node.left.right != nil
+	}
+
+	if node.right != nil {
+		rtChildHasLeft, rtChildHasRight = node.right.left != nil, node.right.right != nil
+	}
+
+	if hasLeftChild && lfChildHasLeft && !hasRightChild {
+		return LL
+	}
+
+	if hasLeftChild && lfChildHasRight && !hasRightChild {
+		return LR
+	}
+
+	if hasRightChild && rtChildHasRight && !hasLeftChild {
+		return RR
+	}
+
+	if hasRightChild && rtChildHasLeft && !hasLeftChild {
+		return RL
+	}
+
+	return Balance
+}
+
+type BalanceStatus uint
+
+const (
+	Balance BalanceStatus = iota
+	LL
+	RR
+	LR
+	RL
+)
 
 func main() {
 	t := &BinarySearchTree{}
