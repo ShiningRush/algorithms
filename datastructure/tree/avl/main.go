@@ -13,7 +13,7 @@ func (t *BinarySearchTree) Insert(data int) {
 	if t.root == nil {
 		t.root = new
 	} else {
-		t.root.Insert(new, nil)
+		t.root.Insert(new)
 	}
 }
 
@@ -42,25 +42,34 @@ func (t *BinarySearchTree) Remove(i int) {
 }
 
 type BinarySearchNode struct {
-	data  int
-	left  *BinarySearchNode
-	right *BinarySearchNode
+	data   int
+	left   *BinarySearchNode
+	right  *BinarySearchNode
+	parent *BinarySearchNode
 }
 
-func (n *BinarySearchNode) Insert(node, pnode *BinarySearchNode) {
+func (n *BinarySearchNode) Insert(node *BinarySearchNode) {
 	if node.data > n.data {
 		if n.right == nil {
 			n.right = node
+			node.parent = n
+			rebalance(n.parent)
 		} else {
-			n.right.Insert(node, n)
+			n.right.Insert(node)
 		}
 	} else {
 		if n.left == nil {
 			n.left = node
+			node.parent = n
+			rebalance(n.parent)
 		} else {
-			n.left.Insert(node, n)
+			n.left.Insert(node)
 		}
 	}
+}
+
+func (n *BinarySearchNode) IsLeftChild(node *BinarySearchNode) bool {
+	return node == n.left
 }
 
 func (n *BinarySearchNode) Print() {
@@ -106,6 +115,18 @@ func (n *BinarySearchNode) Remove(i int, pPointer *BinarySearchNode, isLeft bool
 	}
 }
 
+func (n *BinarySearchNode) GetRoot() *BinarySearchNode {
+	if n.parent == nil {
+		return n
+	}
+
+	tn := n.parent
+	for ; tn.parent != nil; tn = tn.parent {
+	}
+
+	return tn
+}
+
 func (n *BinarySearchNode) removeSelf(pPointer *BinarySearchNode, isLeft bool) {
 	// if node is leaf node
 	if n.left == nil && n.right == nil {
@@ -145,29 +166,78 @@ func (n *BinarySearchNode) removeSelf(pPointer *BinarySearchNode, isLeft bool) {
 	}
 }
 
-func rotation(root *BinarySearchNode, isLeft bool) *BinarySearchNode {
+func rebalance(node *BinarySearchNode) {
+	if node == nil {
+		return
+	}
 
+	status := checkBalanceStatus(node)
+	if status == Balance {
+		return
+	}
+
+	if status == LL {
+		rotation(node, false)
+	}
+
+	if status == RR {
+		rotation(node, true)
+	}
+
+	if status == LR {
+		rotation(node.left, true)
+		rotation(node, false)
+	}
+
+	if status == RL {
+		rotation(node.left, false)
+		rotation(node, true)
+	}
+}
+
+func rotation(node *BinarySearchNode, isLeft bool) *BinarySearchNode {
+	var pivot *BinarySearchNode
 	// left rotation
 	if isLeft {
-		if root.right == nil {
-			return root
+		if node.right == nil {
+			return node
 		}
 
-		pivot := root.right
+		pivot = node.right
 
-		root.right = pivot.left
-		pivot.left = root
-		return pivot
+		node.right = pivot.left
+
+		if pivot.left != nil {
+			pivot.left.parent = node
+		}
+		pivot.left = node
+
+	} else {
+		// right rotation
+		if node.left == nil {
+			return node
+		}
+
+		pivot = node.left
+
+		node.left = pivot.right
+
+		if pivot.right != nil {
+			pivot.right.parent = node
+		}
+		pivot.right = node
 	}
 
-	// right rotation
-	if root.left == nil {
-		return root
+	pivot.parent = node.parent
+	if node.parent != nil {
+		if node.parent.IsLeftChild(node) {
+			node.parent.left = pivot
+		} else {
+			node.parent.right = pivot
+		}
 	}
+	node.parent = pivot
 
-	pivot := root.left
-	root.left = pivot.right
-	pivot.right = root
 	return pivot
 }
 
@@ -216,15 +286,18 @@ const (
 )
 
 func main() {
-	t := &BinarySearchTree{}
+	t := &BinarySearchNode{
+		data: 60,
+	}
 	ar := []int{55, 23, 11, 5, 6, 66, 22, 13, 45, 99}
 	// ar := []int{55, 23, 11, 5, 6, 22, 13, 45}
 	for _, v := range ar {
-		t.Insert(v)
+		t.Insert(&BinarySearchNode{data: v})
+		t = t.GetRoot()
 	}
 
 	t.Print()
 	fmt.Println(t.Find(22))
-	t.Remove(55)
+	t.Remove(55, nil, false)
 	t.Print()
 }
