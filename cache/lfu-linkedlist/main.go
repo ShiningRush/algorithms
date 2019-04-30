@@ -5,30 +5,27 @@ import (
 )
 
 type LFUCache struct {
-	data   map[int]int
-	count  []RecentCount
-	access int
+	data       map[int]int
+	count      *RecentCount
+	curPayload int
+	capacity   int
 }
 
 type RecentCount struct {
-	key    int
-	count  int
-	access int
-}
-
-func (rc RecentCount) Access(acc int) {
-	rc.access = acc
+	key   int
+	count int
+	next  *RecentCount
 }
 
 func Constructor(capacity int) LFUCache {
 	cache := LFUCache{}
 	cache.data = make(map[int]int)
-	cache.count = make([]RecentCount, capacity, capacity)
+	cache.capacity = capacity
 	return cache
 }
 
 func (this *LFUCache) Get(key int) int {
-	if len(this.count) == 0 {
+	if this.capacity == 0 {
 		return -1
 	}
 
@@ -41,68 +38,128 @@ func (this *LFUCache) Get(key int) int {
 }
 
 func (this *LFUCache) Put(key int, value int) {
-	if len(this.count) == 0 {
+	if this.capacity == 0 {
 		return
 	}
 
-	this.data[key] = value
 	this.addToIndex(key)
+	this.data[key] = value
 }
 
 func (this *LFUCache) addToIndex(key int) {
-	min := this.count[0].count
-	minIdx := 0
-	minTime := this.count[0].access
-	findFlg := false
-loop:
-	for idx, v := range this.count {
-		if v.count == 0 {
-			this.count[idx].key = key
-			this.count[idx].count++
-			this.count[idx].access = this.access
-			findFlg = true
-			break loop
+	if this.count == nil {
+		new := &RecentCount{
+			key:   key,
+			count: 1,
 		}
+		this.count = new
+		this.curPayload++
 
-		if v.key == key {
-			this.count[idx].count++
-			this.count[idx].access = this.access
-			findFlg = true
-			break loop
-		}
-
-		if v.count < min {
-			min = v.count
-			minIdx = idx
-			minTime = v.access
-		}
-
-		if v.count == min && v.access < minTime {
-			min = v.count
-			minIdx = idx
-			minTime = v.access
-		}
+		return
 	}
 
-	if !findFlg {
-		delete(this.data, this.count[minIdx].key)
+	if _, ok := this.data[key]; ok {
+		cur := this.count
+		var last *RecentCount
+	loop2:
+		for cur != nil {
+			if cur.key == key {
+				cur.count++
+				next := cur.next
+				if next == nil {
+					break loop2
+				}
 
-		this.count[minIdx].key = key
-		this.count[minIdx].count = 1
-		this.count[minIdx].access = this.access
+			loop3:
+				for {
+					if next.next == nil || (next.next.count > cur.count) {
+						break loop3
+					}
+					next = next.next
+				}
+
+				if this.count == cur {
+					this.count = cur.next
+				}
+				if last != nil {
+					last.next = cur.next
+				}
+				cur.next = next.next
+				next.next = cur
+			}
+
+			last = cur
+			cur = cur.next
+		}
+	} else {
+		new := &RecentCount{
+			key:   key,
+			count: 1,
+		}
+
+		if this.curPayload < this.capacity {
+
+			if this.count.count > 1 {
+				new.next = this.count
+				this.count = new
+			} else if this.count.count == 1 {
+				cur := this.count
+			loop:
+				for cur != nil {
+					if cur.next == nil {
+						cur.next = new
+						break loop
+					}
+
+					if cur.next.count > 1 {
+						new.next = cur.next
+						cur.next = new
+						break loop
+					}
+
+					cur = cur.next
+				}
+			}
+
+			this.curPayload++
+		} else {
+			delete(this.data, this.count.key)
+
+			cur := this.count
+		loop4:
+			for {
+				if cur.next == nil || cur.next.count > 1 {
+					break loop4
+				}
+				cur = cur.next
+			}
+
+			new.next = cur.next
+			if cur == this.count {
+				this.count = new
+
+			} else {
+				this.count = this.count.next
+				cur.next = new
+			}
+		}
 	}
-
-	this.access++
 }
 
+func (this *LFUCache)
+
 func main() {
-	c := Constructor(2)
-	c.Put(2, 1)
-	c.Put(3, 2)
-	fmt.Println(c.Get(3))
-	fmt.Println(c.Get(2))
-	c.Put(4, 3)
-	fmt.Println(c.Get(2))
-	fmt.Println(c.Get(3))
+	c := Constructor(5)
+	c.Put(1, 1)
+	c.Put(2, 2)
+	c.Put(3, 3)
+	c.Put(4, 4)
 	fmt.Println(c.Get(4))
+	fmt.Println(c.Get(3))
+	c.Put(5, 5)
+	c.Put(6, 6)
+	c.Put(7, 7)
+	c.Put(8, 8)
+	c.Put(9, 9)
+	c.Put(10, 10)
 }
