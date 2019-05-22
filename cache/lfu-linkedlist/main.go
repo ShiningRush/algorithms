@@ -17,6 +17,13 @@ type RecentCount struct {
 	next  *RecentCount
 }
 
+func NewRecentCount(key int) *RecentCount {
+	return &RecentCount{
+		key:   key,
+		count: 1,
+	}
+}
+
 func Constructor(capacity int) LFUCache {
 	cache := LFUCache{}
 	cache.data = make(map[int]int)
@@ -48,105 +55,108 @@ func (this *LFUCache) Put(key int, value int) {
 
 func (this *LFUCache) addToIndex(key int) {
 	if this.count == nil {
-		new := &RecentCount{
-			key:   key,
-			count: 1,
-		}
+		new := NewRecentCount(key)
 		this.count = new
 		this.curPayload++
-
 		return
 	}
 
 	if _, ok := this.data[key]; ok {
-		cur := this.count
-		var last *RecentCount
-	loop2:
-		for cur != nil {
-			if cur.key == key {
-				cur.count++
-				next := cur.next
-				if next == nil {
-					break loop2
-				}
-
-			loop3:
-				for {
-					if next.next == nil || (next.next.count > cur.count) {
-						break loop3
-					}
-					next = next.next
-				}
-
-				if this.count == cur {
-					this.count = cur.next
-				}
-				if last != nil {
-					last.next = cur.next
-				}
-				cur.next = next.next
-				next.next = cur
-			}
-
-			last = cur
-			cur = cur.next
-		}
+		this.accessExistNode(key)
 	} else {
-		new := &RecentCount{
-			key:   key,
-			count: 1,
-		}
-
 		if this.curPayload < this.capacity {
-
-			if this.count.count > 1 {
-				new.next = this.count
-				this.count = new
-			} else if this.count.count == 1 {
-				cur := this.count
-			loop:
-				for cur != nil {
-					if cur.next == nil {
-						cur.next = new
-						break loop
-					}
-
-					if cur.next.count > 1 {
-						new.next = cur.next
-						cur.next = new
-						break loop
-					}
-
-					cur = cur.next
-				}
-			}
-
-			this.curPayload++
+			this.addNewNode(key)
 		} else {
-			delete(this.data, this.count.key)
-
-			cur := this.count
-		loop4:
-			for {
-				if cur.next == nil || cur.next.count > 1 {
-					break loop4
-				}
-				cur = cur.next
-			}
-
-			new.next = cur.next
-			if cur == this.count {
-				this.count = new
-
-			} else {
-				this.count = this.count.next
-				cur.next = new
-			}
+			this.replaceNode(key)
 		}
 	}
 }
 
-func (this *LFUCache)
+func (this *LFUCache) accessExistNode(key int) {
+	cur := this.count
+	var last *RecentCount
+loop1:
+	for cur != nil {
+		if cur.key == key {
+			cur.count++
+			next := cur.next
+			if next == nil || next.count > cur.count {
+				break loop1
+			}
+
+		loop2:
+			for {
+				if next.next == nil || (next.next.count > cur.count) {
+					break loop2
+				}
+				next = next.next
+			}
+
+			if this.count == cur {
+				this.count = cur.next
+			}
+			if last != nil {
+				last.next = cur.next
+			}
+			cur.next = next.next
+			next.next = cur
+		}
+
+		last = cur
+		cur = cur.next
+	}
+}
+
+func (this *LFUCache) addNewNode(key int) {
+	new := NewRecentCount(key)
+
+	if this.count.count > 1 {
+		new.next = this.count
+		this.count = new
+	} else if this.count.count == 1 {
+		cur := this.count
+	loop:
+		for cur != nil {
+			if cur.next == nil {
+				cur.next = new
+				break loop
+			}
+
+			if cur.next.count > 1 {
+				new.next = cur.next
+				cur.next = new
+				break loop
+			}
+
+			cur = cur.next
+		}
+	}
+
+	this.curPayload++
+}
+
+func (this *LFUCache) replaceNode(key int) {
+	delete(this.data, this.count.key)
+
+	new := NewRecentCount(key)
+	cur := this.count
+loop:
+	for {
+		if cur.next == nil || cur.next.count > 1 {
+			break loop
+		}
+		cur = cur.next
+	}
+
+	new.next = cur.next
+	if cur == this.count {
+		this.count = new
+
+	} else {
+		this.count = this.count.next
+		cur.next = new
+	}
+}
 
 func main() {
 	c := Constructor(5)
@@ -162,4 +172,6 @@ func main() {
 	c.Put(8, 8)
 	c.Put(9, 9)
 	c.Put(10, 10)
+	fmt.Println(c.Get(3))
+	fmt.Println(c.Get(1))
 }
